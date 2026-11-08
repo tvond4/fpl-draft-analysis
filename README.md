@@ -55,6 +55,10 @@ Before each waiver deadline, rerun everything from `bench_points.py` on to refre
 
 `export_dashboard_data.py` turns the results into small JSON files for a dashboard.
 
+### Refreshing automatically after each gameweek
+
+`next_run.py` says whether a refresh is due: a gameweek has finished, hasn't been refreshed yet, and its last match ended at least 24 hours ago (FPL takes hours to settle bonus points). Kickoff times come from the live fixture list, so moved matches are handled. Run it on a schedule (this project checks every 6 hours), refresh when it says `"due": true`, then run `next_run.py --mark-done`.
+
 ### Stash news (optional)
 
 `potential.py` can add injury and playing-time news to the stash list. Put a `stash_news.json` file next to the scripts: a list of objects with `id` (the FPL player id, shown in `stash_candidates.json`), `player`, `news_summary`, `weeks_out` and `role_outlook` (`starter`, `rotation`, `bench` or `unclear`). News is matched on `id` because display names repeat (there are two Hendersons, for example). This project filled it with an AI research agent that read recent news, but any source works.

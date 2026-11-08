@@ -3,7 +3,12 @@ FPL Draft: stash candidates. Free agents who are injured or have barely played,
 but would score well if they got a regular role.
 
 How to run (from this folder, after projections.py):
-    .venv/bin/python potential.py
+    .venv/bin/python potential.py               # shortlist with news from stash_news.json
+    .venv/bin/python potential.py --shortlist   # fresh shortlist, ignoring old news
+
+Each week: run with --shortlist, research the players it lists in
+stash_candidates.json, save that news (with each player's "id") to
+stash_news.json, then run again without the flag.
 
 Who qualifies
 -------------
@@ -40,6 +45,7 @@ Results go to stash_watchlist.xlsx.
 """
 
 import json
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -120,7 +126,7 @@ def main():
     top = cand.groupby("group").head(TOP_N_PER_GROUP)
 
     news_file = Path("stash_news.json")
-    if news_file.exists():
+    if news_file.exists() and "--shortlist" not in sys.argv:
         # News is matched on FPL's player id: display names repeat (two Hendersons, two Kamaras)
         news = pd.DataFrame(json.loads(news_file.read_text()))
         if "id" not in news.columns:
