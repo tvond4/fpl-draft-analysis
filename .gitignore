@@ -1,0 +1,18 @@
+# Python environment
+.venv/
+__pycache__/
+*.pyc
+
+# Your league settings (league and team IDs)
+config.json
+
+# Downloaded FPL data and every output: these contain league members' names
+# and team names, and the scripts recreate them from your own league.
+data/
+dashboard_data/
+*.xlsx
+stash_candidates.json
+stash_news.json
+
+# macOS
+.DS_Store
