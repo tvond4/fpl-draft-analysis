@@ -51,13 +51,13 @@ Run the scripts in this order. Later scripts reuse data that earlier ones downlo
 .venv/bin/python simulate_season.py
 ```
 
-Before each waiver deadline, rerun everything from `bench_points.py` on to refresh the waiver tool, stash list and season outlook.
+Before each waiver deadline, rerun everything from `bench_points.py` on to refresh the waiver tool, stash list and season outlook. Downloads refresh themselves: player news, ownership and league results are fetched again once the saved copy is an hour old, and a gameweek's scores are fetched again until the next deadline has passed (so late bonus-point corrections are picked up). Scripts can be run from any folder; their files always go in the project folder.
 
 `export_dashboard_data.py` turns the results into small JSON files for a dashboard.
 
 ### Stash news (optional)
 
-`potential.py` can add injury and playing-time news to the stash list. Put a `stash_news.json` file next to the scripts: a list of objects with `player`, `news_summary`, `weeks_out` and `role_outlook` (`starter`, `rotation`, `bench` or `unclear`). This project filled it with an AI research agent that read recent news, but any source works.
+`potential.py` can add injury and playing-time news to the stash list. Put a `stash_news.json` file next to the scripts: a list of objects with `id` (the FPL player id, shown in `stash_candidates.json`), `player`, `news_summary`, `weeks_out` and `role_outlook` (`starter`, `rotation`, `bench` or `unclear`). News is matched on `id` because display names repeat (there are two Hendersons, for example). This project filled it with an AI research agent that read recent news, but any source works.
 
 ## Methods in brief
 

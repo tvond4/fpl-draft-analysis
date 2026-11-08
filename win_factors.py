@@ -39,7 +39,7 @@ import numpy as np
 import pandas as pd
 import statsmodels.api as sm
 
-from draft_grades import LEAGUE_ID, POSITIONS, get
+from draft_grades import LEAGUE_ID, POSITIONS, get, manager_labels
 
 POS = ["GKP", "DEF", "MID", "FWD"]
 
@@ -51,9 +51,9 @@ def build():
     boot = get("bootstrap-static", refresh=False)
     pos_of = {e["id"]: POSITIONS[e["element_type"]] for e in boot["elements"]}
     entry_of = {e["id"]: e["entry_id"] for e in details["league_entries"]}
-    name_of = {e["entry_id"]: e["player_first_name"] for e in details["league_entries"]}
+    name_of = manager_labels(details)
     weekly = pd.read_excel("bench_points.xlsx", sheet_name="Every week")
-    lost = {(r.gw, r.manager.split(" (")[0]): r.lost for r in weekly.itertuples()}
+    lost = {(r.gw, r.entry_id): r.lost for r in weekly.itertuples()}
 
     rows = []
     for mt in details["matches"]:
@@ -79,7 +79,7 @@ def build():
                 row[f"n_{p}"] = sum(1 for pid in starters if pos_of[pid] == p)
                 row[f"{p}_per_player"] = row[p] / row[f"n_{p}"]
             row["blank_starters"] = sum(1 for pid in starters if stat(pid, "minutes") == 0)
-            row["bench_lost"] = lost[(gw, name_of[eid])]
+            row["bench_lost"] = lost[(gw, eid)]
             rows.append(row)
     df = pd.DataFrame(rows)
     df["win"] = (df["result"] == "W").astype(int)

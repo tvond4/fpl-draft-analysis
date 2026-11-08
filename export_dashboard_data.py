@@ -11,12 +11,17 @@ from pathlib import Path
 
 import pandas as pd
 
-from draft_grades import my_name
+from draft_grades import LEAGUE_ID, get, manager_labels, my_name
 from win_factors import build
 
 OUT = Path(__file__).parent / "dashboard_data"
 OUT.mkdir(exist_ok=True)
-first = lambda m: m.split(" (")[0]
+# draft_grades and bench_points label managers "First (Team)"; map those to the
+# short unique labels used everywhere else (first name, plus team only if needed)
+_details = get(f"league/{LEAGUE_ID}/details", refresh=False)
+_labels = manager_labels(_details)
+_short = {f'{e["player_first_name"]} ({e["entry_name"]})': _labels[e["entry_id"]] for e in _details["league_entries"]}
+first = lambda m: _short.get(m, m)
 
 
 def save(name, df):
@@ -79,7 +84,7 @@ save("fa", pd.DataFrame({
 
 wv = pd.read_excel("waiver_tool.xlsx", "Top 5 by position")
 save("waivers", pd.DataFrame({
-    "player": wv["web_name"], "pos": wv["pos"], "team": wv["team"], "proj_next_4": wv["proj_next_4"].round(1),
+    "id": wv["id"], "player": wv["web_name"], "pos": wv["pos"], "team": wv["team"], "proj_next_4": wv["proj_next_4"].round(1),
     "drop": wv["your_weakest"], "gain": wv["gain_vs_your_weakest"].round(1),
     "gain_if_fit": wv["gain_if_all_fit"].round(1), "status": wv["status"]}))
 
@@ -99,11 +104,12 @@ print("summary updated", s)
 
 # ---- Stash watchlist (injured or barely played, with web research) ----
 st = pd.read_json("stash_candidates.json")
-src = pd.DataFrame(json.loads(Path("stash_news.json").read_text())).set_index("player")["sources"]
+# Source links by player id. A news entry without a list of sources gets an empty link.
+src = {n["id"]: (n.get("sources") or [""]) for n in json.loads(Path("stash_news.json").read_text())}
 save("stash", pd.DataFrame({
-    "player": st.player, "pos": st.pos, "team": st.team, "group": st.group,
+    "id": st.id, "player": st.player, "pos": st.pos, "team": st.team, "group": st.group,
     "minutes": st.minutes, "upside_per_week": st.upside_per_week.round(2),
     "weeks_out": st.weeks_out, "role": st.role_outlook, "confidence": st.confidence,
     "stash_value_8wk": st.stash_value_8wk.round(1), "your_weakest": st.your_weakest,
     "gain_vs_weakest_8wk": st.gain_vs_weakest_8wk.round(1), "news": st.news_summary,
-    "news_date": st.latest_news_date.astype(str), "source": st.player.map(lambda p: (src.get(p) or [""])[0])}))
+    "news_date": st.latest_news_date.astype(str), "source": st.id.map(lambda i: (src.get(i) or [""])[0] if isinstance(src.get(i), list) else "")}))

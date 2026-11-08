@@ -186,6 +186,30 @@ def backtest(players, pts, mins, tm, last_done):
     return scores, top.actual.mean(), allp, resid_sd
 
 
+CHOICE_FILE = "projection_choice.json"
+
+
+def save_choice(variant, last_done):
+    """Remember which projection variant won the backtest, so other scripts can reuse it."""
+    import json
+    with open(CHOICE_FILE, "w") as f:
+        json.dump({"variant": variant, "through_gw": last_done}, f)
+
+
+def chosen_variant(players, pts, mins, tm, last_done):
+    """The variant projections.py picked for this gameweek, or run the backtest if it hasn't."""
+    import json, os
+    if os.path.exists(CHOICE_FILE):
+        with open(CHOICE_FILE) as f:
+            saved = json.load(f)
+        if saved.get("through_gw") == last_done and saved.get("variant") in VARIANTS:
+            return saved["variant"]
+    scores, *_ = backtest(players, pts, mins, tm, last_done)
+    variant = [i for i in scores.index if i in VARIANTS][0]
+    save_choice(variant, last_done)
+    return variant
+
+
 def availability(p, week_ahead):
     """Share of a match the player is expected to be available for, from FPL injury news."""
     chance = p.chance_of_playing_next_round
@@ -248,7 +272,8 @@ def main():
     game, last_done, players, fixtures, pts, mins = load()
     tm = team_matches(fixtures)
     scores, top_actual, allp, resid_sd = backtest(players, pts, mins, tm, last_done)
-    best = scores.index[0] if scores.index[0] in VARIANTS else [i for i in scores.index if i in VARIANTS][0]
+    best = [i for i in scores.index if i in VARIANTS][0]     # best model (the simple rules can't project ahead)
+    save_choice(best, last_done)
     model, mine, fa, _ = waiver_tool(players, pts, mins, tm, last_done, game["next_event"], best)
 
     cols = ["web_name", "pos", "team", "proj_next_4"] + [c for c in fa.columns if c.startswith("gw")] + \

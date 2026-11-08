@@ -36,14 +36,21 @@ pick_score        vs_pos_options minus the league's average vs_pos_options in
 """
 
 import json
+import os
+import re
 import time
 import urllib.request
+from collections import Counter
+from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
 
 BASE = "https://draft.premierleague.com/api"
 HERE = Path(__file__).parent
+# Every script reads and writes its files (data, spreadsheets, JSON) in this
+# project folder, wherever you run it from.
+os.chdir(HERE)
 
 # Your league settings live in config.json, which is kept out of git.
 # Copy config.example.json to config.json and fill in your own IDs (see README).
@@ -55,10 +62,21 @@ LEAGUE_ID = int(CONFIG["league_id"])
 MY_ENTRY_ID = int(CONFIG["my_entry_id"])
 
 
+def manager_labels(details=None):
+    """{entry_id: label} for every manager: their first name, plus their team name
+    when two managers share a first name, so labels are always unique."""
+    details = details or get(f"league/{LEAGUE_ID}/details", refresh=False)
+    entries = details["league_entries"]
+    firsts = Counter(e["player_first_name"] for e in entries)
+    return {e["entry_id"]: e["player_first_name"] if firsts[e["player_first_name"]] == 1
+            else f'{e["player_first_name"]} ({e["entry_name"]})' for e in entries}
+
+
 def my_name():
-    """Your first name as the league shows it, used to label you in results."""
-    details = get(f"league/{LEAGUE_ID}/details", refresh=False)
-    return next(e["player_first_name"] for e in details["league_entries"] if e["entry_id"] == MY_ENTRY_ID)
+    """Your label in results (normally your first name)."""
+    return manager_labels()[MY_ENTRY_ID]
+
+
 DATA = HERE / "data"
 DATA.mkdir(exist_ok=True)
 
@@ -66,10 +84,41 @@ POSITIONS = {1: "GKP", 2: "DEF", 3: "MID", 4: "FWD"}
 N_OPTIONS = 10   # same-position alternatives to compare against
 N_NEXT = 10      # following picks to compare against
 
+# How the download cache decides when a saved copy is too old:
+#  - Per-gameweek data (scores, team sheets) can still be corrected for a while
+#    after a gameweek ends, e.g. when bonus points are confirmed. A saved copy is
+#    treated as final only if it was downloaded after the NEXT gameweek's
+#    deadline; until then it is downloaded again once it is an hour old.
+#  - Everything else (player news, league results, ownership) changes all the
+#    time, so it is downloaded again once it is an hour old.
+MAX_AGE_SECONDS = 3600
+_GAMEWEEK_PATH = re.compile(r"^(?:event/(\d+)/live|entry/\d+/event/(\d+))$")
+
+
+def _final_after(gw):
+    """Time after which a gameweek's data is settled: the next gameweek's deadline."""
+    events = get("bootstrap-static", refresh=False)["events"]["data"]
+    deadlines = {e["id"]: datetime.fromisoformat(e["deadline_time"].replace("Z", "+00:00")).timestamp() for e in events}
+    if gw + 1 in deadlines:
+        return deadlines[gw + 1]
+    return deadlines.get(gw, 0) + 7 * 24 * 3600     # last gameweek: a week after its deadline
+
 
 def get(path, refresh=True):
-    """Download one API endpoint and cache it in ./data."""
+    """Download one API endpoint and cache it in ./data.
+
+    refresh=True always downloads. refresh=False reuses the saved copy unless it
+    may be out of date (see MAX_AGE_SECONDS above).
+    """
     out = DATA / (path.replace("/", "_") + ".json")
+    if not refresh and out.exists():
+        saved = out.stat().st_mtime
+        old = time.time() - saved > MAX_AGE_SECONDS
+        m = _GAMEWEEK_PATH.match(path)
+        if m:
+            refresh = old and saved < _final_after(int(m.group(1) or m.group(2)))
+        else:
+            refresh = old
     if refresh or not out.exists():
         req = urllib.request.Request(f"{BASE}/{path}", headers={"User-Agent": "Mozilla/5.0"})
         with urllib.request.urlopen(req, timeout=30) as r:

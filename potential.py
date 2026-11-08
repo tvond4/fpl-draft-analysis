@@ -52,27 +52,19 @@ MAX_MINUTES_SHARE = 0.40
 STARTER_MINUTES = 0.9
 PRIOR_MATCHES = 4       # the pre-season expectation counts as 4 matches of evidence
 TOP_N_PER_GROUP = 8
-MIN_MINUTES = 90
+MIN_MINUTES = 90        # "barely played" players need at least one full match's worth
 STASH_WEEKS = 8
 UNKNOWN_WEEKS_OUT = 4   # if the return date is unknown, assume about a month
-ROLE_SHARE = {"starter": 1.0, "rotation": 0.6, "bench": 0.3, "unclear": 0.5}   # share of the starter upside        # "barely played" players need at least one full match's worth
+ROLE_SHARE = {"starter": 1.0, "rotation": 0.6, "bench": 0.3, "unclear": 0.5}   # share of the starter upside
 
 
 def main():
     game, last_done, players, fixtures, pts, mins = pj.load()
     tm = pj.team_matches(fixtures)
-    scores, *_ = pj.backtest(players, pts, mins, tm, last_done)
-    variant = [i for i in scores.index if i in pj.VARIANTS][0]
+    variant = pj.chosen_variant(players, pts, mins, tm, last_done)
     feats, by_pos = pj.VARIANTS[variant]
     model = pj.fit(pj.training_rows(players, pts, mins, tm, range(5, last_done + 1)), feats, by_pos)
 
-    # Upside over the next 4 weeks if he starts: same model, with a starter's minutes
-    upside = pd.Series(0.0, index=players.index)
-    for g in range(game["next_event"], game["next_event"] + pj.HORIZON):
-        f = pj.features(players, pts, mins, tm, g, last_done)
-        f["minutes_4"] = STARTER_MINUTES
-        f["rate_x_min"] = f.p90_shrunk * STARTER_MINUTES
-        upside += pd.Series(pj.predict(model, f).values, index=f.pid)
     base = pj.features(players, pts, mins, tm, game["next_event"], last_done).set_index("pid")
 
     # Expected goal involvement per 90, pulled toward the position average (3 matches' worth)
@@ -97,7 +89,8 @@ def main():
     # Any minutes count as at least one full match, so a 3-minute cameo can't produce a huge rate
     eff_matches = np.where(base.season_mins > 0, base.season_mins.clip(lower=90), 0) / 90
     base["blended_p90"] = (base.season_pts + PRIOR_MATCHES * base.prior_p90) / (eff_matches + PRIOR_MATCHES)
-    # Re-project the upside with the blended rate in place of the position-average one
+    # Upside over the next 4 weeks if he starts: the projection model with a
+    # starter's minutes and the blended rate as his scoring rate
     upside = pd.Series(0.0, index=players.index)
     for g in range(game["next_event"], game["next_event"] + pj.HORIZON):
         f = pj.features(players, pts, mins, tm, g, last_done)
@@ -108,7 +101,7 @@ def main():
     status = pd.DataFrame(get(f"league/{LEAGUE_ID}/element-status")["element_status"]).set_index("element")
     teams = {t["id"]: t["short_name"] for t in get("bootstrap-static", refresh=False)["teams"]}
     t = pd.DataFrame({
-        "player": players.web_name, "full_name": players.first_name + " " + players.second_name,
+        "id": players.index, "player": players.web_name, "full_name": players.first_name + " " + players.second_name,
         "pos": players.pos, "team": players.team.map(teams), "status": players.status,
         "chance_next": players.chance_of_playing_next_round, "fpl_news": players.news,
         "minutes": base.season_mins, "minutes_share_pct": (base.season_mins / (90 * last_done) * 100).round(0),
@@ -128,8 +121,12 @@ def main():
 
     news_file = Path("stash_news.json")
     if news_file.exists():
-        news = pd.DataFrame(json.loads(news_file.read_text())).set_index("player")
-        cand = cand.join(news[[c for c in news.columns if c not in cand.columns]], on="player")
+        # News is matched on FPL's player id: display names repeat (two Hendersons, two Kamaras)
+        news = pd.DataFrame(json.loads(news_file.read_text()))
+        if "id" not in news.columns:
+            raise SystemExit("stash_news.json entries need an 'id' (FPL player id) so news matches the right player.")
+        news = news.set_index("id")
+        cand = cand.join(news[[c for c in news.columns if c not in cand.columns]], on="id")
         # Stash value: expected points over the next STASH_WEEKS weeks, counting only
         # weeks he should be fit, scaled by how much he is likely to play.
         weeks_fit = (STASH_WEEKS - cand.weeks_out.fillna(UNKNOWN_WEEKS_OUT)).clip(0, STASH_WEEKS)

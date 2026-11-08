@@ -31,7 +31,7 @@ import numpy as np
 import pandas as pd
 
 from bench_points import best_lineup
-from draft_grades import LEAGUE_ID, get, my_name
+from draft_grades import LEAGUE_ID, get, manager_labels, my_name
 import projections as pj
 
 N_SIMS = 20_000
@@ -69,8 +69,7 @@ def strength_from_results(weekly):
 def strength_from_squads(league_mean, owner_names):
     game, last_done, players, fixtures, pts, mins = pj.load()
     tm = pj.team_matches(fixtures)
-    scores, *_ = pj.backtest(players, pts, mins, tm, last_done)
-    best = [i for i in scores.index if i in pj.VARIANTS][0]
+    best = pj.chosen_variant(players, pts, mins, tm, last_done)
     _, _, _, t = pj.waiver_tool(players, pts, mins, tm, last_done, game["next_event"], best)
     t = t[t.owner.notna()]
     xi = {}
@@ -117,16 +116,17 @@ def main():
     game = get("game")
     last_done = game["current_event"] if game["current_event_finished"] else game["current_event"] - 1
     details = get(f"league/{LEAGUE_ID}/details", refresh=False)
-    name_of = {e["id"]: e["player_first_name"] for e in details["league_entries"]}
-    owner_names = {e["entry_id"]: e["player_first_name"] for e in details["league_entries"]}
+    owner_names = manager_labels(details)                                      # entry_id -> unique label
+    name_of = {e["id"]: owner_names[e["entry_id"]] for e in details["league_entries"]}  # league entry id -> label
     base = standings_so_far(details, name_of, last_done)
 
     # Check against the official table
     official = {name_of[s["league_entry"]]: s["total"] for s in details["standings"]}
-    assert all(base.loc[n, "league_pts"] == official[n] for n in official), "standings mismatch"
+    bad = [n for n in official if base.loc[n, "league_pts"] != official[n]]
+    assert not bad, f"Standings don't match the official table for {bad}. The league data may be mid-update; try again later."
 
     weekly = pd.read_excel("bench_points.xlsx", sheet_name="Every week")
-    weekly["manager"] = weekly["manager"].str.split(" (", regex=False).str[0]
+    weekly["manager"] = weekly["entry_id"].map(owner_names)
     mu_a, mu_sd_a, sigma, weight, between_var, league_mean = strength_from_results(weekly)
     mu_b, xi_raw = strength_from_squads(league_mean, owner_names)
 

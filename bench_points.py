@@ -152,10 +152,11 @@ def main():
         "worst_week_lost": g["lost"].max(),
         "bench_points_scored": g["bench_total"].sum(),
         "bench_who_played": g["bench_who_played"].sum(),
-        "lost_per_live_bench": g["lost"].sum() / g["bench_who_played"].sum(),
+        # A manager whose bench never played has nothing to divide by: left blank, not infinite
+        "lost_per_live_bench": g["lost"].sum() / g["bench_who_played"].sum().replace(0, np.nan),
         "calls": g["calls"].sum(),
         "right_calls": g["right_calls"].sum(),
-        "call_accuracy_pct": g["right_calls"].sum() / g["calls"].sum() * 100,
+        "call_accuracy_pct": g["right_calls"].sum() / g["calls"].sum().replace(0, np.nan) * 100,
         "auto_subs": g["auto_subs"].sum(),
     })
     # How sure are we? Re-draw the weeks at random 5,000 times and see how much
@@ -173,13 +174,13 @@ def main():
     hg = hh.groupby("manager")
     summary["record_W_D_L"] = hg["result"].apply(lambda r: f'{(r=="W").sum()}-{(r=="D").sum()}-{(r=="L").sum()}')
     summary["matches_lost_to_lineup"] = hg["flipped"].sum()
-    summary = summary.sort_values("call_accuracy_pct", ascending=False).round(1)
+    summary = summary.sort_values("call_accuracy_pct", ascending=False, na_position="last").round(1)
     summary.insert(0, "rank", range(1, len(summary) + 1))
 
     out = "bench_points.xlsx"
     with pd.ExcelWriter(out) as xw:
         summary.to_excel(xw, sheet_name="Manager summary")
-        df.drop(columns="entry_id").to_excel(xw, sheet_name="Every week", index=False)
+        df.to_excel(xw, sheet_name="Every week", index=False)   # entry_id lets other scripts match teams
         hh.drop(columns="entry_id").to_excel(xw, sheet_name="Head to head", index=False)
 
     print(f"Through GW{last_done}. Score check: {len(df) - len(mismatches)}/{len(df)} manager-weeks match official results.")

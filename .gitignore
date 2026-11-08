@@ -13,6 +13,7 @@ dashboard_data/
 *.xlsx
 stash_candidates.json
 stash_news.json
+projection_choice.json
 
 # macOS
 .DS_Store

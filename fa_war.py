@@ -26,7 +26,7 @@ Results go to fa_war.xlsx.
 import numpy as np
 import pandas as pd
 
-from draft_grades import LEAGUE_ID, POSITIONS, get
+from draft_grades import LEAGUE_ID, POSITIONS, get, manager_labels
 
 TOP_N = 5          # free agents that set replacement level
 FORM_WEEKS = 4     # weeks of form used to pick them
@@ -40,7 +40,7 @@ def load():
     tx = get(f"draft/league/{LEAGUE_ID}/transactions")["transactions"]
     players = pd.DataFrame(boot["elements"]).set_index("id")
     players["pos"] = players["element_type"].map(POSITIONS)
-    entries = {e["entry_id"]: e["player_first_name"] for e in details["league_entries"]}
+    entries = manager_labels(details)       # {entry_id: unique label}
 
     pts = {}      # (player, gw) -> points
     mins = {}
