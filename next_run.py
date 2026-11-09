@@ -10,7 +10,7 @@ Prints one line of JSON, for example:
     {"due": true, "gw": 10, "last_refreshed_gw": 9, ...}
 
 A refresh is due when FPL has finished a gameweek that hasn't been refreshed yet
-AND at least 24 hours have passed since that gameweek's last match ended. A match
+AND at least 16 hours have passed since that gameweek's last match ended. A match
 is taken to end MATCH_LENGTH_HOURS after kickoff. Kickoff times come from the main
 FPL game's fixture list, downloaded fresh each time, so a match that moves (TV
 picks, cup ties, postponements) moves the refresh with it.
@@ -32,7 +32,7 @@ from draft_grades import get
 from projections import get_classic
 
 MATCH_LENGTH_HOURS = 2
-WAIT_AFTER_LAST_MATCH_HOURS = 24
+WAIT_AFTER_LAST_MATCH_HOURS = 16
 STATE = Path("last_refreshed.json")
 CLAIM_HOURS = 4
 
@@ -59,7 +59,7 @@ def main():
         last_kick = fixtures[fixtures.event == last_done].kick.max()
         ready_at = last_kick.to_pydatetime() + timedelta(hours=MATCH_LENGTH_HOURS + WAIT_AFTER_LAST_MATCH_HOURS)
         out.update({"due": now >= ready_at, "ready_at_local": ready_at.astimezone().isoformat(timespec="minutes"),
-                    "why": "gameweek finished over 24 hours ago" if now >= ready_at else "waiting for the 24 hours to pass"})
+                    "why": f"gameweek finished over {WAIT_AFTER_LAST_MATCH_HOURS} hours ago" if now >= ready_at else f"waiting for the {WAIT_AFTER_LAST_MATCH_HOURS} hours to pass"})
     claim = state.get("claimed_at")
     claimed = claim and now - datetime.fromisoformat(claim) < timedelta(hours=CLAIM_HOURS)
     if out["due"] and claimed:
