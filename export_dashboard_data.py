@@ -7,6 +7,7 @@ Files land in ./dashboard_data. Then ask Claude to upload them to the dashboard.
 """
 
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pandas as pd
@@ -72,7 +73,9 @@ save("summary", pd.DataFrame([{
     "break_even": round(-fit.params["const"] / fit.params["score"], 1),
     "league_accuracy": round(b["right_calls"].sum() / b["calls"].sum() * 100, 1),
     "matches_flipped": int(b["matches_lost_to_lineup"].sum()),
-    "matches_played": int(len(df) / 2)}]))
+    "matches_played": int(len(df) / 2),
+    # When this data was pulled from FPL: the time the refresh's first script ran
+    "updated_at": datetime.fromtimestamp(Path("draft_grades.xlsx").stat().st_mtime, tz=timezone.utc).isoformat(timespec="minutes")}]))
 
 # ---- Free agents, waiver tool and season outlook ----
 f = pd.read_excel("fa_war.xlsx", "Manager summary")
