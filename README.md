@@ -55,9 +55,14 @@ Before each waiver deadline, rerun everything from `bench_points.py` on to refre
 
 `export_dashboard_data.py` turns the results into small JSON files for a dashboard.
 
-### Refreshing automatically after each gameweek
+### Refreshing automatically
 
-`next_run.py` says whether a refresh is due: a gameweek has finished, hasn't been refreshed yet, and its last match ended at least 16 hours ago (FPL takes hours to settle bonus points). Kickoff times come from the live fixture list, so moved matches are handled. Run it on a schedule (this project checks every 6 hours), refresh when it says `"due": true`, then run `next_run.py --mark-done`.
+`next_run.py` says whether a refresh is due, and which kind:
+
+- **After a gameweek** (`post_gameweek`): a gameweek has finished, hasn't been refreshed yet, and its last match ended at least 16 hours ago (FPL takes hours to settle bonus points). Kickoff times come from the live fixture list, so moved matches are handled.
+- **Before a waiver deadline** (`pre_waiver`): once per gameweek, within the 24 hours before the waiver deadline. Points don't change, but injury news, waiver picks and the stash list do, which matters most over international breaks.
+
+Run it on a schedule (this project checks every 6 hours) with `--claim`, refresh when it says `"due": true`, then run `next_run.py --mark-done`. The claim stops two overlapping checks from both refreshing.
 
 ### Stash news (optional)
 
