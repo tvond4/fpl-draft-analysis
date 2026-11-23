@@ -76,7 +76,7 @@ Run it on a schedule (this project checks every 6 hours) with `--claim`, refresh
 - **Lineup call accuracy:** for every benched player who actually played, was each starter he could legally have replaced worth at least as much?
 - **WAR for pickups:** points above the 5 free agents in the best recent form at the same position, over the weeks the manager owned the player.
 - **Projections:** points per 90 minutes, pulled toward the position average when a player has played little, times expected minutes, adjusted for fixture difficulty and FPL's injury news. They are backtested against simple rules on past gameweeks.
-- **Luck (KenPom-style):** each match becomes an expected win from its own points for and against (the chance a team scoring that many beats one scoring that many, given week-to-week scoring spread). Luck is actual minus expected win percentage. Points against is pure schedule luck in FPL, since you can't defend.
+- **Luck (KenPom-style):** each match becomes an expected win from its own points for and against (the chance a team scoring that many beats one scoring that many, given week-to-week scoring spread). Luck is actual minus expected win percentage. Points against (shown as each team's median week, so one huge opponent week doesn't skew it) is pure schedule luck in FPL, since you can't defend.
 - **Season simulation:** 20,000 simulated seasons, with team strength judged from results so far (pulled toward the league average) or from current squads.
 
 ## Caveats

@@ -123,5 +123,7 @@ save("luck", pd.DataFrame({
     "manager": lk["manager"], "record": lk["record"], "expected_wins": lk["expected_wins"].round(1),
     "luck": lk["luck"].round(3), "luck_wins": lk["luck_wins"].round(1),
     "pf_per_week": lk["pf_per_week"].round(1), "pa_per_week": lk["points_against_per_week"].round(1),
-    "pa_vs_league": lk["pa_vs_league"].round(1), "all_play_record": lk["all_play_record"],
+    "pa_vs_league": lk["pa_vs_league"].round(1), "median_pa": lk["median_points_against"].round(1),
+    "median_pf": lk["median_points_for"].round(1), "median_pa_vs_league": lk["median_pa_vs_league"].round(1),
+    "league_median": lk["league_median_score"].round(1), "all_play_record": lk["all_play_record"],
     "all_play_win_pct": lk["all_play_win_pct"].round(3), "close_record": lk["close_record"]}))

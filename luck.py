@@ -29,11 +29,14 @@ counts as half a win, as FPL draws do.
   luck_wins = actual wins - expected wins      (same thing, counted in wins)
 
 Two more views of luck that only make sense in FPL, where you can't defend:
-  points_against_per_week   what opponents scored against you. You have no
-                            control over it, so facing hot opponents is luck.
-  pa_vs_league              points against per week minus the league average
-                            score. Positive means you faced above-average
-                            opponents.
+  median_points_against     what opponents scored against you in a typical
+                            week (the median: the middle week, so one huge
+                            week from an opponent doesn't skew it). You have
+                            no control over it, so facing hot opponents is luck.
+  median_pa_vs_league       median points against minus the league's median
+                            weekly score. Positive means you faced
+                            above-typical opponents.
+  points_against_per_week   the average (mean) version, kept for reference.
   all_play                  your score against EVERY other team each week. It
                             removes the luck of the draw: the record your
                             scores deserved against an average schedule.
@@ -75,6 +78,7 @@ def main():
     sigma = (g.pf - g.groupby("manager").pf.transform("mean")).std(ddof=1)
     g["expected_win"] = [phi((pf - pa) / (sigma * sqrt(2))) for pf, pa in zip(g.pf, g.pa)]
     league_avg = g.pf.mean()
+    league_median = g.pf.median()
 
     # All-play: each score against every other score that week (ties count half)
     allplay = []
@@ -93,6 +97,10 @@ def main():
     s["pf_per_week"] = s.points_for / s.games
     s["points_against_per_week"] = s.points_against / s.games
     s["pa_vs_league"] = s.points_against_per_week - league_avg
+    s["median_points_against"] = g.groupby("manager").pa.median()
+    s["median_points_for"] = g.groupby("manager").pf.median()
+    s["median_pa_vs_league"] = s.median_points_against - league_median
+    s["league_median_score"] = league_median
     s["actual_win_pct"] = s.actual_wins / s.games
     s["expected_win_pct"] = s.expected_wins / s.games
     s["luck"] = s.actual_win_pct - s.expected_win_pct
@@ -120,9 +128,9 @@ def main():
         g.round(3).to_excel(xw, sheet_name="Every match", index=False)
 
     pd.set_option("display.width", 250)
-    print(f"Through GW{last_done}. League average {league_avg:.1f} pts/week; week-to-week spread (SIGMA) {sigma:.1f}.")
+    print(f"Through GW{last_done}. League average {league_avg:.1f} pts/week, median {league_median:.1f}; week-to-week spread (SIGMA) {sigma:.1f}.")
     print(f"Official table check: {'all match' if not mism else 'MISMATCH ' + str(mism)}\n")
-    print(s[["luck_rank", "record", "expected_wins", "luck", "luck_wins", "points_against_per_week", "pa_vs_league",
+    print(s[["luck_rank", "record", "expected_wins", "luck", "luck_wins", "median_points_against", "median_pa_vs_league", "points_against_per_week",
              "all_play_record", "all_play_win_pct", "close_record"]].round(3).to_string())
 
 
