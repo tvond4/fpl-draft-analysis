@@ -116,3 +116,12 @@ save("stash", pd.DataFrame({
     "stash_value_8wk": st.stash_value_8wk.round(1), "your_weakest": st.your_weakest,
     "gain_vs_weakest_8wk": st.gain_vs_weakest_8wk.round(1), "news": st.news_summary,
     "news_date": st.latest_news_date.astype(str), "source": st.id.map(lambda i: (src.get(i) or [""])[0] if isinstance(src.get(i), list) else "")}))
+
+# ---- Luck and points against (KenPom-style) ----
+lk = pd.read_excel("luck.xlsx", "Luck by manager")
+save("luck", pd.DataFrame({
+    "manager": lk["manager"], "record": lk["record"], "expected_wins": lk["expected_wins"].round(1),
+    "luck": lk["luck"].round(3), "luck_wins": lk["luck_wins"].round(1),
+    "pf_per_week": lk["pf_per_week"].round(1), "pa_per_week": lk["points_against_per_week"].round(1),
+    "pa_vs_league": lk["pa_vs_league"].round(1), "all_play_record": lk["all_play_record"],
+    "all_play_win_pct": lk["all_play_win_pct"].round(3), "close_record": lk["close_record"]}))

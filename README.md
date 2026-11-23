@@ -16,6 +16,7 @@ Everything comes from FPL Draft's public data feed, so no login is needed. You o
 | Which free agents should I pick up this week, and who should I drop? | `projections.py` | `waiver_tool.xlsx` |
 | Which injured or barely used free agents are worth stashing? | `potential.py` | `stash_watchlist.xlsx` |
 | Where am I likely to finish, and how much would better waivers help? | `simulate_season.py` | `season_sim.xlsx` |
+| Who has been lucky or unlucky (KenPom-style), and who faced the toughest opponents? | `luck.py` | `luck.xlsx` |
 
 Every script starts with a plain-English explanation of its method.
 
@@ -49,6 +50,7 @@ Run the scripts in this order. Later scripts reuse data that earlier ones downlo
 .venv/bin/python projections.py
 .venv/bin/python potential.py
 .venv/bin/python simulate_season.py
+.venv/bin/python luck.py
 ```
 
 Before each waiver deadline, rerun everything from `bench_points.py` on to refresh the waiver tool, stash list and season outlook. Downloads refresh themselves: player news, ownership and league results are fetched again once the saved copy is an hour old, and a gameweek's scores are fetched again until the next deadline has passed (so late bonus-point corrections are picked up). Scripts can be run from any folder; their files always go in the project folder.
@@ -74,6 +76,7 @@ Run it on a schedule (this project checks every 6 hours) with `--claim`, refresh
 - **Lineup call accuracy:** for every benched player who actually played, was each starter he could legally have replaced worth at least as much?
 - **WAR for pickups:** points above the 5 free agents in the best recent form at the same position, over the weeks the manager owned the player.
 - **Projections:** points per 90 minutes, pulled toward the position average when a player has played little, times expected minutes, adjusted for fixture difficulty and FPL's injury news. They are backtested against simple rules on past gameweeks.
+- **Luck (KenPom-style):** each match becomes an expected win from its own points for and against (the chance a team scoring that many beats one scoring that many, given week-to-week scoring spread). Luck is actual minus expected win percentage. Points against is pure schedule luck in FPL, since you can't defend.
 - **Season simulation:** 20,000 simulated seasons, with team strength judged from results so far (pulled toward the league average) or from current squads.
 
 ## Caveats
